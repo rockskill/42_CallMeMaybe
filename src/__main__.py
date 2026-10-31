@@ -16,7 +16,7 @@ if __name__ == "__main__":
         llm_model = Small_LLM_Model()
         encoder = create_encoder(llm_model.get_path_to_vocab_file())
         llm = LLM(llm_model, encoder)
-        cmm = CallMeMaybe(llm, functions_definition)
+        cmm = CallMeMaybe(llm, args_functions_definition)
 
         prompts = None
         with open(input_file) as requests:
