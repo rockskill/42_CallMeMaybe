@@ -25,9 +25,9 @@ if __name__ == "__main__":
         output.write('[\n')
         for i, p in enumerate(prompts):
             if i < len(prompts) - 1:
-                output.write(cmm.process_func(p) + ',\n')
+                output.write(cmm.process_function(p) + ',\n')
             else:
-                output.write(cmm.process_func(p) + '\n')
+                output.write(cmm.process_function(p) + '\n')
         output.write(']')
         output.close()
 
