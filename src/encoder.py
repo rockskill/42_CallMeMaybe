@@ -34,8 +34,9 @@ class Encoder(BaseModel):
         node: dict[str, Any] = {}
         i: int = 0
         j: int = 0
-        match_id: int | None
-        match_length: int
+        match_id: int | None = None
+        match_length: int = -1
+        text = convert_for_machine(text)
         while i < len(text):
             node = self._trie
             match_id = None
@@ -67,3 +68,45 @@ class Encoder(BaseModel):
                 indeces.add(token_id)
             indeces.add(self.encode(' ' + word)[0])
         return indeces
+
+    def tokenize_fragments(self, text: str) -> list[list[int]]:
+        """Returns tokenized prompt fragments."""
+        indeces: list[list[int]] = []
+        # comment
+        colon_match = re.search(r':\s*(.+)$', text)
+        if colon_match:
+            indeces.append(self.encode(colon_match.group(1).strip()))
+        # comment
+        unescaped = text.replace('\\"', '"')
+        fragments = WORD_PATTERN.findall(unescaped)
+        for fragment in fragments:
+            fragment = fragment.strip('".,!?:;\\')
+            fragment = fragment.strip("'")
+            if not fragment:
+                continue
+            indeces.append(self.encode(fragment))
+        return indeces
+
+    def decode(self, tokens: list[int] | int) -> str:
+        """Translates LLM tokens to human-readable text."""
+        if isinstance(tokens, int):
+            return self._vocab[tokens] or ''
+        return convert_for_human(
+            ''.join(self._vocab[t] or '' for t in tokens)
+        )
+
+
+def convert_for_machine(text: str) -> str:
+    """
+    Replaces spaces, tabs and new line escape sequences
+    with dedicated characters for machine processing.
+    """
+    return text.replace(' ', 'Ġ').replace('\n', 'Ċ').replace('\t', 'ĉ')
+
+
+def convert_for_human(text: str) -> str:
+    """
+    Replaces dedicated characters for machine processing
+    with spaces, tabs and new line escape sequences.
+    """
+    return text.replace('Ġ', ' ').replace('Ċ', '\n').replace('ĉ', '\t')
