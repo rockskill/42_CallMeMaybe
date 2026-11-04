@@ -59,6 +59,7 @@ class LLM(BaseModel):
                    mask: set[int] | None = None) -> int:
         """Returns the next token for the provided tokens."""
         logits: list[float] = self.get_logits(tokens, mask)
+        # Computes currently best token token as argmax of all logits.
         best_token: int = int(np.argmax(logits))
         return best_token
 
