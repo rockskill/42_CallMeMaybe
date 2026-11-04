@@ -3,6 +3,10 @@ from src.llm import LLM
 from src.encoder import Encoder
 from src.function import Function
 import json
+import re
+
+
+REGEX_MAPPING: list[tuple] = []
 
 
 class CallMeMaybe(BaseModel):
@@ -10,6 +14,7 @@ class CallMeMaybe(BaseModel):
     llm: LLM
     encoder: Encoder
     functions: dict[str, Function]
+    # Tokenized attributes for LLM instructions.
     token_definitions: list[int]
     token_instruction_prefix: list[int]
     token_instruction_suffix: list[int]
@@ -49,16 +54,83 @@ class CallMeMaybe(BaseModel):
             token_instruction_suffix=token_instruction_suffix
         )
 
+    def regex_pattern(self, text: str) -> list[int]:
+        """Resolves the regex pattern from prompt keywords."""
+        words = {word.strip('\'\".,!?').lower() for word in text.split()}
+        for key_words, pattern in REGEX_MAPPING:
+            if words & set(key_words):
+                return self.encoder.encode(pattern)
+
+        match = re.search(r"['\"](\w+)['\"]", text)
+        if match:
+            return self.encoder.encode(match.group(1))
+
+        return self.encoder.encode(r'\w+')
+
+    def set_tools(self, function: Function | None = None) -> None:
+        """Updates the LLM context with function definitions."""
+        if function is not None:
+            definitions = function.token_definition
+        else:
+            definitions = self.token_definitions
+        updated_definitions = self.token_instruction_prefix + definitions\
+            + self.token_instruction_prefix
+        self.llm.set_llm_instruction(updated_definitions)
+
+    def add_arguments(self, func: Function, tokens: list[int], text: str) -> list[int]:
+        """Prepares all arguments for a function call."""
+        for i, arg_name in enumerate(func.params):
+            arg_type = func.params[arg_name]
+            if i > 0:
+                tokens += self.encoder.encode(', ')
+            tokens += self.encoder.encode(f'"{arg_name}": ')
+
+            if arg_name == 'regex':
+                tokens += self.encoder.encode('"')
+                tokens += self.regex_pattern(text)
+                tokens += self.encoder.encode('"')
+                continue
+            if arg_type == 'boolean':
+                options = [
+                    self.encoder.encode('True'),
+                    self.encoder.encode('False')
+                ]
+            else:
+                options = self.encoder.tokens(text)
+            if arg_type == 'string':
+                tokens += self.encoder.encode('"')
+            next_option = self.llm.next_option(tokens, options)
+            if arg_type == 'number' or arg_type == 'float':
+                parameter = self.encoder.decode(next_option)
+                if parameter.isdigit():
+                    next_option += self.encoder.encode('.0')
+            tokens += next_option
+            if arg_type == 'string':
+                tokens += self.encoder.encode('"')
+        tokens += self.encoder.encode('}\n')
+
+        return tokens
+
     def process_function(self, prompt: str) -> str:
         text: str = (
-            '<|im_start|>user\n' + 
-            prompt + 
+            '<|im_start|>user\n' +
+            prompt +
             '\n<|im_end|>\n'
             '<|im_start|>assistant\n'
             '<tool_call>\n'
             '{"name": "'
         )
         tokens = self.encoder.encode(text)
+        self.set_tools()
+
+        function_names = [func.token_name for func in self.functions.values()]
+        function_name = self.llm.next_option(tokens, function_names)
+        decoded_function = self.functions[self.encoder.decode(function_name)]
+        tokens += decoded_function.token_name
+        tokens += self.encoder.encode('", "arguments": {')
+        self.set_tools(decoded_function)
+        tokens = self.add_arguments(decoded_function, tokens, prompt)
+        tokens += self.encoder.encode('}')
 
         raw = self.encoder.decode(tokens)
         tool_json = raw[raw.find('{"name":'):]
