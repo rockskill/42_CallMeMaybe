@@ -2,15 +2,34 @@ from llm_sdk import Small_LLM_Model
 from src.encoder import Encoder
 from src.llm import LLM
 from src.callmemaybe import CallMeMaybe
+import argparse
 import json
 
 
 def create_encoder(vocab_path: str) -> Encoder:
-    # Parses tokens from the file by the path provided.
+    # Parses tokens from the vocabulary by the path provided.
     # Then creates the encoder instance with loaded tokens.
     with open(vocab_path, 'r', encoding='utf-8') as f:
         tokens = json.load(f)
     return Encoder(tokens)
+
+
+def parse_arguments() -> argparse.Namespace:
+
+    argument_parser = argparse.ArgumentParser()
+    argument_parser.add_argument(
+        '--functions_definition',
+        default='data/input/function_definition.json'
+    )
+    argument_parser.add_argument(
+        '--input',
+        default='data/input/function_calling_tests.json'
+    )
+    argument_parser.add_argument(
+        '--output',
+        default='data/input/function_calling_results.json'
+    )
+    return argument_parser.parse_args()
 
 
 if __name__ == "__main__":
@@ -24,14 +43,15 @@ if __name__ == "__main__":
         llm_model = Small_LLM_Model()
         encoder = create_encoder(llm_model.get_path_to_vocab_file())
         llm = LLM(llm_model, encoder)
-        callmemmaybe = CallMeMaybe(llm, args_functions_definition)
+        arguments = parse_arguments()
+        callmemmaybe = CallMeMaybe(llm, arguments.functions_definition)
 
         # Load prompts and prepare the output file for the
         # decoded function calls.
         prompts = None
-        with open(input_file) as requests:
+        with open(arguments.input) as requests:
             prompts = [t['prompt'] for t in json.load(requests)]
-        output = open(output_file, 'w')
+        output = open(arguments.output, 'w')
         output.write('[\n')
         # Process loaded input prompts one by one using CallMeMaybe object.
         for i, prompt in enumerate(prompts):
@@ -45,6 +65,7 @@ if __name__ == "__main__":
     except FileNotFoundError as e:
         print(f"File not found: {e.filename}")
 
+    # Catching errors on reading JSON.
     except json.JSONDecodeError as e:
         print(f"Error decoding JSON: {e.msg} " +
               f"at line {e.lineno} column {e.colno}")
