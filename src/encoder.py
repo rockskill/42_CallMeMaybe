@@ -11,7 +11,10 @@ WORD_PATTERN = re.compile(r'''
 
 
 class Encoder(BaseModel):
-    """Class that represents a custom encoder for LLM."""
+    """
+    Class that represents a custom encoder for LLM.
+    
+    """
     _vocab: list[str | None] = PrivateAttr()
     _trie: dict[str, Any] = PrivateAttr()
 

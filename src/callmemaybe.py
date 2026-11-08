@@ -6,7 +6,23 @@ import json
 import re
 
 
-REGEX_MAPPING: list[tuple] = []
+# Mapping for encoding of function arguments that are regular expressions.
+REGEX_MAPPING: list[tuple] = [
+    (['vowel', 'vowels'], r'[aeiouAEIOU]'),
+    (
+        ['consonant', 'consonants'],
+        r'[bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ]',
+    ),
+    (['digit', 'digits', 'number', 'numbers'], r'\\d+'),
+    (['uppercase', 'upper', 'capital'], r'[A-Z]+'),
+    (['lowercase', 'lower'], r'[a-z]+'),
+    (['letter', 'letters', 'alphabetic'], r'[a-zA-Z]+'),
+    (['space', 'spaces', 'whitespaces'], r'\\s+'),
+    (['punctuation', 'special'], r'[^\w\s]'),
+    (['alphanumeric'], r'\\w+'),
+    (['newline', 'newlines'], r'\\n+'),
+    (['tab', 'tabs'], r'\\t+'),
+]
 
 
 class CallMeMaybe(BaseModel):
@@ -20,8 +36,12 @@ class CallMeMaybe(BaseModel):
     token_instruction_suffix: list[int]
 
     def __init__(self, llm: LLM, functions_definition: str) -> None:
+        # The encoder used is given by LLM-object passed on creation.
         encoder: Encoder = llm.encoder
 
+        # Load functions from input JSON file and create a Function-object
+        # for each loaded function. Each Function-object has embedded encoder
+        # taken from given LLM-object.
         functions: dict = {}
         with open(functions_definition, 'r') as input_file:
             for function in json.load(input_file):
@@ -77,7 +97,9 @@ class CallMeMaybe(BaseModel):
             + self.token_instruction_prefix
         self.llm.set_llm_instruction(updated_definitions)
 
-    def add_arguments(self, func: Function, tokens: list[int], text: str) -> list[int]:
+    def add_arguments(self,
+                      func: Function,
+                      tokens: list[int], text: str) -> list[int]:
         """Prepares all arguments for a function call."""
         for i, arg_name in enumerate(func.params):
             arg_type = func.params[arg_name]
