@@ -25,6 +25,11 @@ REGEX_MAPPING: list[tuple] = [
 ]
 
 
+def replace_backslashes_quotes(prompt: str) -> str:
+    """Replaces backslashes and doupble quotes in prompt."""
+    return prompt.replace('\\', '\\\\').replace('"', '\\"')
+
+
 class CallMeMaybe(BaseModel):
     """Class that represents the function processor."""
     llm: LLM
@@ -61,6 +66,7 @@ class CallMeMaybe(BaseModel):
             'For each function call, return a json '
             'object within <tool_call></tool_call> tags:\n'
             '<tool_call>\n'
+            '{"name": <function-name>, "arguments": <args-json-object>}\n'
             '</tool_call>\n'
             '<|im_end|>\n'
         )
@@ -134,6 +140,7 @@ class CallMeMaybe(BaseModel):
         return tokens
 
     def process_function(self, prompt: str) -> str:
+        prompt = replace_backslashes_quotes(prompt)
         text: str = (
             '<|im_start|>user\n' +
             prompt +
