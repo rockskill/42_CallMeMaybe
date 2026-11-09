@@ -5,7 +5,15 @@ import json
 
 
 class Function(BaseModel):
-    """A class that represents function that can be called."""
+    """
+    A class that represents function that can be called.
+    It has name, description and parameters attributes,
+    and also attributes holding its tokenized versions.
+    The very last attribute holds the tokenized version
+    for the definition of the whole function. It is built
+    up from tokenized function name, tokenized function
+    description and tokenized function parameters.
+    """
     _name: str = PrivateAttr()
     _token_name: list[int] = PrivateAttr()
     _description: str = PrivateAttr()
@@ -17,6 +25,11 @@ class Function(BaseModel):
     def __init__(self,
                  function: dict[str, Any],
                  encoder: Encoder) -> None:
+        """
+        Function constructor method for Function objects creation.
+        It uses an encoder passed as a parameter to create tokenized
+        forms of function name, function description and function parameters.
+        """
         super().__init__()
         self._name: str = function['name']
         self._token_name: list[int] = encoder.encode(self._name)
@@ -24,6 +37,10 @@ class Function(BaseModel):
         self._token_description: list[int] = encoder.encode(self._description)
         self._params = {
             key: value['type']
+            for key, value in function['parameters'].items()
+        }
+        self._token_params = {
+            key: encoder.encode(value['type'])
             for key, value in function['parameters'].items()
         }
         self._token_definition = encoder.encode(self._convert_to_tool_schema())
