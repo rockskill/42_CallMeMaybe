@@ -7,15 +7,20 @@ import json
 
 
 def create_encoder(vocab_path: str) -> Encoder:
-    # Parses tokens from the vocabulary by the path provided.
-    # Then creates the encoder instance with loaded tokens.
+    """
+    Parses tokens from the vocabulary by the path provided.
+    Then creates the encoder instance with loaded tokens.
+    """
     with open(vocab_path, 'r', encoding='utf-8') as f:
         tokens = json.load(f)
     return Encoder(tokens)
 
 
 def parse_arguments() -> argparse.Namespace:
-
+    """
+    Argument parser for parsing custom paths for functions definition,
+    input calling tests and output file for call results.
+    """
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument(
         '--functions_definition',
@@ -33,6 +38,7 @@ def parse_arguments() -> argparse.Namespace:
 
 
 if __name__ == "__main__":
+    """Main method."""
     try:
         # Create the CallMeMaybe object as the function processor
         # for functions from the prompt.

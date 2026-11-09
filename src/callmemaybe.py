@@ -41,6 +41,10 @@ class CallMeMaybe(BaseModel):
     token_instruction_suffix: list[int]
 
     def __init__(self, llm: LLM, functions_definition: str) -> None:
+        """
+        CallMeMaybe constructor method, connects LLM with
+        encoded function definitions.
+        """
         # The encoder used is given by LLM-object passed on creation.
         encoder: Encoder = llm.encoder
 

@@ -13,17 +13,27 @@ WORD_PATTERN = re.compile(r'''
 class Encoder(BaseModel):
     """
     Class that represents a custom encoder for LLM.
-    
+    It uses trie structure for O(n) encoding instead of O(n^2) substring
+    search. Uses Byte-Pair Encoder algorithm (BPE) for encoding.
+    Vocabulary (vocab) holds the words received from tokens.
     """
     _vocab: list[str | None] = PrivateAttr()
     _trie: dict[str, Any] = PrivateAttr()
 
     def __init__(self, tokens: dict[str, int]) -> None:
+        """
+        Encoder constructor method.
+        It builds up vocabulary from tokens and trie for
+        each character in word.
+        """
         vocab: list[str | None] = [None] * len(tokens)
         trie: dict[str, Any] = {}
+        # Preparing vocabulary and trie.
         for word, token in tokens.items():
             vocab[token] = word
             node: dict[str, Any] = trie
+            # Building the trie.
+            # Setting default dict for each character in word.
             for c in word:
                 node = node.setdefault(c, {})
             node['token'] = token
@@ -39,6 +49,8 @@ class Encoder(BaseModel):
         j: int = 0
         match_id: int | None = None
         match_length: int = -1
+        # Replaces spaces, next line and tab escape sequencies
+        # with special chars for LLMs.
         text = convert_for_machine(text)
         while i < len(text):
             node = self._trie

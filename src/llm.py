@@ -5,12 +5,19 @@ import numpy as np
 
 
 class LLM(BaseModel):
-    """A class representing LLM."""
+    """
+    A class representing LLM.
+    It consists of provided small language model and a custom BPE encoder.
+    """
     _llm: Small_LLM_Model = PrivateAttr()
     _encoder: Encoder = PrivateAttr()
     _token_instruction: list[int] | None = PrivateAttr()
 
     def __init__(self, llm: Small_LLM_Model, encoder: Encoder) -> None:
+        """
+        LLM constructor method: assigns the small language model, encoder and
+        the last instruction.
+        """
         super().__init__()
         self._llm = llm
         self._encoder = encoder
@@ -18,6 +25,7 @@ class LLM(BaseModel):
 
     @property
     def encoder(self) -> Encoder:
+        """Property method that returns LLM's encoder."""
         return self._encoder
 
     def set_llm_instruction(self, instruction: list[int] | str) -> None:
