@@ -88,6 +88,7 @@ class LLM(BaseModel):
         while options:
             allowed_options: set[int] = {option[0] for option in options}
             next_token: int = self.next_token(context, allowed_options)
+            # Update best option and context by adding token chosen as next.
             best_option.append(next_token)
             context.append(next_token)
             options = [
