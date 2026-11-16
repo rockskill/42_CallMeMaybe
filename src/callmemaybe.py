@@ -26,7 +26,7 @@ REGEX_MAPPING: list[tuple] = [
 
 
 def replace_backslashes_quotes(prompt: str) -> str:
-    """Replaces backslashes and doupble quotes in prompt."""
+    """Replaces backslashes and double quotes in prompt."""
     return prompt.replace('\\', '\\\\').replace('"', '\\"')
 
 
@@ -56,9 +56,12 @@ class CallMeMaybe(BaseModel):
             for function in json.load(input_file):
                 functions[function['name']] = Function(function, encoder)
 
+        # Tokenized(encoded) definitions of all functions.
         token_definitions = [token
                              for function in functions.values()
                              for token in function.token_definition]
+        # Tokenized(encoded) prefix and suffix for LM instructions
+        # (Qwen3-0.6B native).
         token_instruction_prefix = encoder.encode(
             '<|im_start|>system\n'
             'You are provided with function signatures '
@@ -99,6 +102,7 @@ class CallMeMaybe(BaseModel):
 
     def set_tools(self, function: Function | None = None) -> None:
         """Updates the LLM context with function definitions."""
+        # Update definitions for function.
         if function is not None:
             definitions = function.token_definition
         else:
@@ -144,6 +148,10 @@ class CallMeMaybe(BaseModel):
         return tokens
 
     def process_function(self, prompt: str) -> str:
+        """
+        Processes each loaded function and returns function as a result.
+        Writes function string to output file.
+        """
         prompt = replace_backslashes_quotes(prompt)
         text: str = (
             '<|im_start|>user\n' +
@@ -153,10 +161,14 @@ class CallMeMaybe(BaseModel):
             '<tool_call>\n'
             '{"name": "'
         )
+        # Encode the first part of instruction.
         tokens = self.encoder.encode(text)
+        # Set context for LM.
         self.set_tools()
 
+        # Get all function names.
         function_names = [func.token_name for func in self.functions.values()]
+        # Choose next option (relying on function names).
         function_name = self.llm.next_option(tokens, function_names)
         decoded_function = self.functions[self.encoder.decode(function_name)]
         tokens += decoded_function.token_name

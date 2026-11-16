@@ -52,6 +52,8 @@ class Encoder(BaseModel):
         # Replaces spaces, next line and tab escape sequencies
         # with special chars for LLMs.
         text = convert_for_machine(text)
+        # Performs Byte-Pair Encoding algorithm.
+        # Returns list of computed indeces for each symbol.
         while i < len(text):
             node = self._trie
             match_id = None

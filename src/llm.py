@@ -32,6 +32,7 @@ class LLM(BaseModel):
         """Sets the instruction for LLM."""
         if isinstance(instruction, str):
             instruction = self._encoder.encode(instruction)
+        # Sets updated LM instruction.
         self._token_instruction = instruction
 
     def _apply_mask(self,
@@ -51,6 +52,10 @@ class LLM(BaseModel):
                    mask: set[int] | None = None) -> list[float]:
         """
         Returns the list of logits for provided tokens.
+        Gets logits using function get_logits_from_input_ids() from given SDK.
+        Function get_logits_from_input_ids() returns raw unnormalized score,
+        that model assigns to every single token in its vocabulary to predict
+        what comes next.
         """
         instruction: list[int] = self._token_instruction \
             if self._token_instruction is not None \
@@ -65,7 +70,10 @@ class LLM(BaseModel):
     def next_token(self,
                    tokens: list[int],
                    mask: set[int] | None = None) -> int:
-        """Returns the next token for the provided tokens."""
+        """
+        Returns the best next token for the provided tokens.
+        Uses argmax algorithm to choose (function numpy.argmax()).
+        """
         logits: list[float] = self.get_logits(tokens, mask)
         # Computes currently best token token as argmax of all logits.
         best_token: int = int(np.argmax(logits))

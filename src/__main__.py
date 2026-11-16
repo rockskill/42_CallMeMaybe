@@ -56,7 +56,7 @@ if __name__ == "__main__":
         # decoded function calls.
         prompts = None
         with open(arguments.input) as requests:
-            prompts = [t['prompt'] for t in json.load(requests)]
+            prompts = [token['prompt'] for token in json.load(requests)]
         output = open(arguments.output, 'w')
         output.write('[\n')
         # Process loaded input prompts one by one using CallMeMaybe object.

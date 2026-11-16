@@ -46,6 +46,7 @@ class Function(BaseModel):
         self._token_definition = encoder.encode(self._convert_to_tool_schema())
 
     def _convert_to_tool_schema(self) -> str:
+        """Serializer for Function-object."""
         return json.dumps({
             "name": self._name,
             "description": self._description,
