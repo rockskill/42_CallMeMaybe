@@ -51,7 +51,7 @@ class CallMeMaybe(BaseModel):
         # Load functions from input JSON file and create a Function-object
         # for each loaded function. Each Function-object has embedded encoder
         # taken from given LLM-object.
-        functions: dict = {}
+        functions: dict[str, Function] = {}
         with open(functions_definition, 'r') as input_file:
             for function in json.load(input_file):
                 functions[function['name']] = Function(function, encoder)
@@ -108,7 +108,7 @@ class CallMeMaybe(BaseModel):
         else:
             definitions = self.token_definitions
         updated_definitions = self.token_instruction_prefix + definitions\
-            + self.token_instruction_prefix
+            + self.token_instruction_suffix
         self.llm.set_llm_instruction(updated_definitions)
 
     def add_arguments(self,
@@ -167,19 +167,24 @@ class CallMeMaybe(BaseModel):
         self.set_tools()
 
         # Get all function names.
-        function_names = [func.token_name for func in self.functions.values()]
+        function_names: list[list[int]] = [func.token_name
+                                           for func in self.functions.values()]
         # Choose next option (relying on function names).
-        function_name = self.llm.next_option(tokens, function_names)
-        decoded_function = self.functions[self.encoder.decode(function_name)]
+        function_name: list[int] = self.llm.next_option(tokens, function_names)
+        decoded_function: Function = self.functions[
+            self.encoder.decode(function_name)
+        ]
         tokens += decoded_function.token_name
         tokens += self.encoder.encode('", "arguments": {')
+        # Update context with decoded function.
         self.set_tools(decoded_function)
         tokens = self.add_arguments(decoded_function, tokens, prompt)
         tokens += self.encoder.encode('}')
 
-        raw = self.encoder.decode(tokens)
-        tool_json = raw[raw.find('{"name":'):]
-        data = json.loads(tool_json)
+        raw: str = self.encoder.decode(tokens)
+        tool_json: str = raw[raw.find('{"name":'):]
+        print(repr(tool_json))
+        data: dict[str, str] = json.loads(tool_json)
 
         return (
             '\t{\n'

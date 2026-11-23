@@ -109,7 +109,7 @@ class Encoder(BaseModel):
         if isinstance(tokens, int):
             return self._vocab[tokens] or ''
         return convert_for_human(
-            ''.join(self._vocab[t] or '' for t in tokens)
+            ''.join(self._vocab[token] or '' for token in tokens)
         )
 
 
